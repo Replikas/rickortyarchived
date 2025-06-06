@@ -1,0 +1,168 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: 240 10% 3.9%; /* #121212 */
+  --foreground: 0 0% 100%; /* #ffffff */
+  --muted: 240 4% 15%; /* #262626 */
+  --muted-foreground: 0 0% 53%; /* #888888 */
+  --popover: 240 10% 12%; /* #1e1e1e */
+  --popover-foreground: 0 0% 100%; /* #ffffff */
+  --card: 240 10% 12%; /* #1e1e1e */
+  --card-foreground: 0 0% 100%; /* #ffffff */
+  --border: 240 4% 15%; /* #262626 */
+  --input: 240 4% 15%; /* #262626 */
+  --primary: 142 100% 50%; /* #00ff41 neon green */
+  --primary-foreground: 240 10% 3.9%; /* #121212 */
+  --secondary: 240 4% 15%; /* #262626 */
+  --secondary-foreground: 0 0% 100%; /* #ffffff */
+  --accent: 195 100% 40%; /* #0099cc portal blue */
+  --accent-foreground: 0 0% 100%; /* #ffffff */
+  --destructive: 0 84% 60%; /* #ff5555 */
+  --destructive-foreground: 0 0% 100%; /* #ffffff */
+  --ring: 142 100% 50%; /* #00ff41 */
+  --radius: 0.5rem;
+  
+  /* Custom colors */
+  --neon-green: 142 100% 50%; /* #00ff41 */
+  --portal-blue: 195 100% 40%; /* #0099cc */
+  --warning-amber: 45 100% 50%; /* #ffaa00 */
+  --dark-bg: 240 10% 3.9%; /* #121212 */
+  --dark-surface: 240 10% 12%; /* #1e1e1e */
+  --dark-elevated: 240 4% 15%; /* #262626 */
+  --text-primary: 0 0% 100%; /* #ffffff */
+  --text-secondary: 0 0% 80%; /* #cccccc */
+  --text-muted: 0 0% 53%; /* #888888 */
+}
+
+.dark {
+  --background: 240 10% 3.9%;
+  --foreground: 0 0% 100%;
+  --muted: 240 4% 15%;
+  --muted-foreground: 0 0% 53%;
+  --popover: 240 10% 12%;
+  --popover-foreground: 0 0% 100%;
+  --card: 240 10% 12%;
+  --card-foreground: 0 0% 100%;
+  --border: 240 4% 15%;
+  --input: 240 4% 15%;
+  --primary: 142 100% 50%;
+  --primary-foreground: 240 10% 3.9%;
+  --secondary: 240 4% 15%;
+  --secondary-foreground: 0 0% 100%;
+  --accent: 195 100% 40%;
+  --accent-foreground: 0 0% 100%;
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 0 0% 100%;
+  --ring: 142 100% 50%;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply font-sans antialiased bg-background text-foreground;
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+}
+
+@layer components {
+  .neon-green {
+    color: hsl(var(--neon-green));
+  }
+  
+  .portal-blue {
+    color: hsl(var(--portal-blue));
+  }
+  
+  .warning-amber {
+    color: hsl(var(--warning-amber));
+  }
+  
+  .glow-neon {
+    transition: all 0.3s ease;
+  }
+  
+  .glow-neon:hover {
+    text-shadow: 0 0 10px hsl(var(--neon-green));
+    box-shadow: 0 0 20px hsla(var(--neon-green), 0.3);
+  }
+  
+  .glow-portal {
+    transition: all 0.3s ease;
+  }
+  
+  .glow-portal:hover {
+    box-shadow: 0 0 20px hsla(var(--portal-blue), 0.3);
+  }
+  
+  .upload-area {
+    background: linear-gradient(135deg, hsla(var(--neon-green), 0.1) 0%, hsla(var(--portal-blue), 0.1) 100%);
+    border: 2px dashed hsl(var(--neon-green));
+  }
+  
+  .content-card {
+    background: linear-gradient(135deg, hsl(var(--dark-surface)) 0%, hsl(var(--dark-elevated)) 100%);
+    transition: all 0.3s ease;
+  }
+  
+  .content-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 32px hsla(var(--neon-green), 0.2);
+  }
+  
+  .tag-chip {
+    background: hsla(var(--neon-green), 0.2);
+    border: 1px solid hsl(var(--neon-green));
+    transition: all 0.2s ease;
+  }
+  
+  .tag-chip:hover {
+    background: hsla(var(--neon-green), 0.3);
+  }
+}
+
+@layer utilities {
+  .text-neon-green {
+    color: hsl(var(--neon-green));
+  }
+  
+  .text-portal-blue {
+    color: hsl(var(--portal-blue));
+  }
+  
+  .text-warning-amber {
+    color: hsl(var(--warning-amber));
+  }
+  
+  .bg-neon-green {
+    background-color: hsl(var(--neon-green));
+  }
+  
+  .bg-portal-blue {
+    background-color: hsl(var(--portal-blue));
+  }
+  
+  .bg-dark-bg {
+    background-color: hsl(var(--dark-bg));
+  }
+  
+  .bg-dark-surface {
+    background-color: hsl(var(--dark-surface));
+  }
+  
+  .bg-dark-elevated {
+    background-color: hsl(var(--dark-elevated));
+  }
+  
+  .border-neon-green {
+    border-color: hsl(var(--neon-green));
+  }
+  
+  .border-portal-blue {
+    border-color: hsl(var(--portal-blue));
+  }
+}

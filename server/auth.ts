@@ -88,3 +88,122 @@ export async function optionalAuth(req: AuthRequest, res: Response, next: NextFu
   }
   next();
 }
+
+// Moderation middleware
+export async function requireModerator(req: AuthRequest, res: Response, next: NextFunction) {
+  const authHeader = req.headers.authorization;
+  const token = authHeader && authHeader.split(' ')[1];
+
+  if (!token) {
+    return res.status(401).json({ message: 'Access token required' });
+  }
+
+  const decoded = verifyToken(token);
+  if (!decoded) {
+    return res.status(401).json({ message: 'Invalid or expired token' });
+  }
+
+  try {
+    const user = await storage.getUserById(decoded.userId);
+    if (!user || !user.isActive) {
+      return res.status(401).json({ message: 'User not found or inactive' });
+    }
+
+    if (user.isBanned) {
+      return res.status(403).json({ message: 'Account banned' });
+    }
+
+    if (user.role !== 'moderator' && user.role !== 'admin') {
+      return res.status(403).json({ message: 'Moderator access required' });
+    }
+
+    req.user = {
+      id: user.id,
+      email: user.email,
+      username: user.username
+    };
+    next();
+  } catch (error) {
+    console.error('Moderation auth error:', error);
+    return res.status(500).json({ message: 'Authentication failed' });
+  }
+}
+
+export async function requireAdmin(req: AuthRequest, res: Response, next: NextFunction) {
+  const authHeader = req.headers.authorization;
+  const token = authHeader && authHeader.split(' ')[1];
+
+  if (!token) {
+    return res.status(401).json({ message: 'Access token required' });
+  }
+
+  const decoded = verifyToken(token);
+  if (!decoded) {
+    return res.status(401).json({ message: 'Invalid or expired token' });
+  }
+
+  try {
+    const user = await storage.getUserById(decoded.userId);
+    if (!user || !user.isActive) {
+      return res.status(401).json({ message: 'User not found or inactive' });
+    }
+
+    if (user.isBanned) {
+      return res.status(403).json({ message: 'Account banned' });
+    }
+
+    if (user.role !== 'admin') {
+      return res.status(403).json({ message: 'Admin access required' });
+    }
+
+    req.user = {
+      id: user.id,
+      email: user.email,
+      username: user.username
+    };
+    next();
+  } catch (error) {
+    console.error('Admin auth error:', error);
+    return res.status(500).json({ message: 'Authentication failed' });
+  }
+}
+
+// Age verification middleware for 18+ content
+export async function requireAgeVerification(req: AuthRequest, res: Response, next: NextFunction) {
+  const authHeader = req.headers.authorization;
+  const token = authHeader && authHeader.split(' ')[1];
+
+  if (!token) {
+    return res.status(401).json({ message: 'Access token required' });
+  }
+
+  const decoded = verifyToken(token);
+  if (!decoded) {
+    return res.status(401).json({ message: 'Invalid or expired token' });
+  }
+
+  try {
+    const user = await storage.getUserById(decoded.userId);
+    if (!user || !user.isActive) {
+      return res.status(401).json({ message: 'User not found or inactive' });
+    }
+
+    if (user.isBanned) {
+      return res.status(403).json({ message: 'Account banned' });
+    }
+
+    if (!user.ageVerified) {
+      return res.status(403).json({ message: 'Age verification required for 18+ content' });
+    }
+
+    req.user = {
+      id: user.id,
+      email: user.email,
+      username: user.username
+    };
+    next();
+  } catch (error) {
+    console.error('Age verification error:', error);
+    return res.status(500).json({ message: 'Authentication failed' });
+  }
+}

@@ -33,6 +33,12 @@ export const users = pgTable("users", {
   firstName: varchar("first_name", { length: 100 }),
   lastName: varchar("last_name", { length: 100 }),
   profileImageUrl: varchar("profile_image_url", { length: 500 }),
+  role: varchar("role", { length: 20 }).default("user").notNull(), // user, moderator, admin
+  isBanned: boolean("is_banned").default(false).notNull(),
+  banReason: text("ban_reason"),
+  bannedAt: timestamp("banned_at"),
+  bannedBy: integer("banned_by").references(() => users.id),
+  ageVerified: boolean("age_verified").default(false).notNull(),
   isActive: boolean("is_active").default(true),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
@@ -52,6 +58,14 @@ export const fanworks = pgTable("fanworks", {
   chapterCount: integer("chapter_count"), // For fanfiction
   isComplete: boolean("is_complete").default(false),
   authorId: integer("author_id").notNull().references(() => users.id),
+  // Moderation fields
+  isHidden: boolean("is_hidden").default(false).notNull(),
+  moderationReason: text("moderation_reason"),
+  moderatedAt: timestamp("moderated_at"),
+  moderatedBy: integer("moderated_by").references(() => users.id),
+  contentType: varchar("content_type", { length: 50 }).default("fanart").notNull(), // 'fanart', 'no_real_photos'
+  isReported: boolean("is_reported").default(false).notNull(),
+  reportCount: integer("report_count").default(0).notNull(),
   // AO3 import fields
   ao3WorkId: varchar("ao3_work_id", { length: 50 }),
   ao3Url: varchar("ao3_url", { length: 500 }),
@@ -98,6 +112,22 @@ export const bookmarks = pgTable("bookmarks", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   fanworkId: integer("fanwork_id").notNull().references(() => fanworks.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Reports table for content moderation
+export const reports = pgTable("reports", {
+  id: serial("id").primaryKey(),
+  reporterId: integer("reporter_id").notNull().references(() => users.id),
+  fanworkId: integer("fanwork_id").references(() => fanworks.id, { onDelete: "cascade" }),
+  commentId: integer("comment_id").references(() => comments.id, { onDelete: "cascade" }),
+  userId: integer("user_id").references(() => users.id), // For reporting users
+  reason: varchar("reason", { length: 100 }).notNull(), // 'inappropriate', 'real_photo', 'spam', 'harassment', 'other'
+  description: text("description"),
+  status: varchar("status", { length: 20 }).default("pending").notNull(), // 'pending', 'reviewed', 'resolved', 'dismissed'
+  reviewedBy: integer("reviewed_by").references(() => users.id),
+  reviewedAt: timestamp("reviewed_at"),
+  moderationAction: varchar("moderation_action", { length: 50 }), // 'hide_content', 'ban_user', 'delete_content', 'no_action'
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -168,6 +198,29 @@ export const bookmarksRelations = relations(bookmarks, ({ one }) => ({
   }),
 }));
 
+export const reportsRelations = relations(reports, ({ one }) => ({
+  reporter: one(users, {
+    fields: [reports.reporterId],
+    references: [users.id],
+  }),
+  fanwork: one(fanworks, {
+    fields: [reports.fanworkId],
+    references: [fanworks.id],
+  }),
+  comment: one(comments, {
+    fields: [reports.commentId],
+    references: [comments.id],
+  }),
+  reportedUser: one(users, {
+    fields: [reports.userId],
+    references: [users.id],
+  }),
+  reviewer: one(users, {
+    fields: [reports.reviewedBy],
+    references: [users.id],
+  }),
+}));
+
 // Insert schemas
 export const insertFanworkSchema = createInsertSchema(fanworks).omit({
   id: true,
@@ -186,6 +239,15 @@ export const insertCommentSchema = createInsertSchema(comments).omit({
   updatedAt: true,
 });
 
+export const insertReportSchema = createInsertSchema(reports).omit({
+  id: true,
+  createdAt: true,
+  status: true,
+  reviewedBy: true,
+  reviewedAt: true,
+  moderationAction: true,
+});
+
 // Types
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
@@ -195,5 +257,7 @@ export type InsertTag = z.infer<typeof insertTagSchema>;
 export type Tag = typeof tags.$inferSelect;
 export type InsertComment = z.infer<typeof insertCommentSchema>;
 export type Comment = typeof comments.$inferSelect;
+export type InsertReport = z.infer<typeof insertReportSchema>;
+export type Report = typeof reports.$inferSelect;
 export type Like = typeof likes.$inferSelect;
 export type Bookmark = typeof bookmarks.$inferSelect;

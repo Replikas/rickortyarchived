@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Atom, FileImage, BookOpen, Users } from "lucide-react";
 import { Link } from "wouter";
+import ramLogo from "@assets/WhereToWatch-Header-RaM-NewEpisodes-2000x500-Photoroom.png";
 
 export default function Landing() {
   return (
@@ -33,6 +34,16 @@ export default function Landing() {
             <span className="text-portal-blue">Fanworks</span>{" "}
             <span className="text-foreground">Vault</span>
           </h1>
+          
+          {/* Rick and Morty Logo */}
+          <div className="flex justify-center mb-8">
+            <img 
+              src={ramLogo} 
+              alt="Rick and Morty" 
+              className="h-20 md:h-24 opacity-60 hover:opacity-80 transition-opacity duration-300"
+            />
+          </div>
+          
           <p className="text-xl text-muted-foreground mb-8 max-w-3xl mx-auto">
             The uncensored archive for Rick x Morty fanworks. Upload, browse, and interact with 
             fan-made content without judgment. Think AO3 meets underground art vault, Rick-style.

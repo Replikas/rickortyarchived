@@ -36,12 +36,15 @@ export default function Landing() {
           </h1>
           
           {/* Rick and Morty Logo */}
-          <div className="flex justify-center mb-8">
-            <img 
-              src={ramLogo} 
-              alt="Rick and Morty" 
-              className="h-20 md:h-24 opacity-60 hover:opacity-80 transition-opacity duration-300"
-            />
+          <div className="flex justify-center mb-8 relative">
+            <div className="relative">
+              <img 
+                src={ramLogo} 
+                alt="Rick and Morty" 
+                className="h-16 md:h-20 opacity-30 hover:opacity-50 transition-opacity duration-500 mix-blend-screen"
+              />
+              <div className="absolute inset-0 bg-gradient-to-r from-neon-green/10 to-portal-blue/10 rounded-lg blur-sm"></div>
+            </div>
           </div>
           
           <p className="text-xl text-muted-foreground mb-8 max-w-3xl mx-auto">

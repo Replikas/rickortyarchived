@@ -6,6 +6,7 @@ import {
   likes,
   comments,
   bookmarks,
+  reports,
   type User,
   type UpsertUser,
   type Fanwork,
@@ -16,6 +17,8 @@ import {
   type InsertComment,
   type Like,
   type Bookmark,
+  type Report,
+  type InsertReport,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, sql, ilike, inArray } from "drizzle-orm";
@@ -64,6 +67,17 @@ export interface IStorage {
   getComments(fanworkId: number): Promise<Comment[]>;
   createComment(comment: InsertComment): Promise<Comment>;
   deleteComment(id: number, userId: number): Promise<void>;
+
+  // Moderation operations
+  createReport(report: InsertReport): Promise<Report>;
+  getReports(): Promise<Report[]>;
+  updateReport(id: number, data: Partial<Report>): Promise<Report>;
+  banUser(userId: string, data: { banReason: string; bannedBy: string; bannedAt: Date }): Promise<User>;
+  unbanUser(userId: string): Promise<User>;
+  hideFanwork(fanworkId: number, data: { moderationReason: string; moderatedBy: string; moderatedAt: Date }): Promise<Fanwork>;
+  unhideFanwork(fanworkId: number): Promise<Fanwork>;
+  updateUserRole(userId: string, role: string): Promise<User>;
+  verifyUserAge(userId: string): Promise<User>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -303,6 +317,99 @@ export class DatabaseStorage implements IStorage {
     await db
       .delete(comments)
       .where(and(eq(comments.id, id), eq(comments.userId, userId)));
+  }
+
+  // Moderation operations
+  async createReport(report: InsertReport): Promise<Report> {
+    const [newReport] = await db.insert(reports).values(report).returning();
+    return newReport;
+  }
+
+  async getReports(): Promise<Report[]> {
+    return await db.select().from(reports).orderBy(desc(reports.createdAt));
+  }
+
+  async updateReport(id: number, data: Partial<Report>): Promise<Report> {
+    const [updatedReport] = await db
+      .update(reports)
+      .set(data)
+      .where(eq(reports.id, id))
+      .returning();
+    return updatedReport;
+  }
+
+  async banUser(userId: string, data: { banReason: string; bannedBy: string; bannedAt: Date }): Promise<User> {
+    const [user] = await db
+      .update(users)
+      .set({
+        isBanned: true,
+        banReason: data.banReason,
+        bannedBy: data.bannedBy,
+        bannedAt: data.bannedAt,
+      })
+      .where(eq(users.id, userId))
+      .returning();
+    return user;
+  }
+
+  async unbanUser(userId: string): Promise<User> {
+    const [user] = await db
+      .update(users)
+      .set({
+        isBanned: false,
+        banReason: null,
+        bannedBy: null,
+        bannedAt: null,
+      })
+      .where(eq(users.id, userId))
+      .returning();
+    return user;
+  }
+
+  async hideFanwork(fanworkId: number, data: { moderationReason: string; moderatedBy: string; moderatedAt: Date }): Promise<Fanwork> {
+    const [fanwork] = await db
+      .update(fanworks)
+      .set({
+        isHidden: true,
+        moderationReason: data.moderationReason,
+        moderatedBy: data.moderatedBy,
+        moderatedAt: data.moderatedAt,
+      })
+      .where(eq(fanworks.id, fanworkId))
+      .returning();
+    return fanwork;
+  }
+
+  async unhideFanwork(fanworkId: number): Promise<Fanwork> {
+    const [fanwork] = await db
+      .update(fanworks)
+      .set({
+        isHidden: false,
+        moderationReason: null,
+        moderatedBy: null,
+        moderatedAt: null,
+      })
+      .where(eq(fanworks.id, fanworkId))
+      .returning();
+    return fanwork;
+  }
+
+  async updateUserRole(userId: string, role: string): Promise<User> {
+    const [user] = await db
+      .update(users)
+      .set({ role })
+      .where(eq(users.id, userId))
+      .returning();
+    return user;
+  }
+
+  async verifyUserAge(userId: string): Promise<User> {
+    const [user] = await db
+      .update(users)
+      .set({ ageVerified: true })
+      .where(eq(users.id, userId))
+      .returning();
+    return user;
   }
 }
 

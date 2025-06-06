@@ -33,44 +33,33 @@ export const users = pgTable("users", {
   firstName: varchar("first_name", { length: 100 }),
   lastName: varchar("last_name", { length: 100 }),
   profileImageUrl: varchar("profile_image_url", { length: 500 }),
-  role: varchar("role", { length: 20 }).default("user").notNull(), // user, moderator, admin
-  isBanned: boolean("is_banned").default(false).notNull(),
+  role: varchar("role", { length: 20 }).notNull().default("user"),
+  isBanned: boolean("is_banned").notNull().default(false),
   banReason: text("ban_reason"),
   bannedAt: timestamp("banned_at"),
-  bannedBy: integer("banned_by").references(() => users.id),
-  ageVerified: boolean("age_verified").default(false).notNull(),
-  isActive: boolean("is_active").default(true),
+  bannedBy: varchar("banned_by", { length: 50 }),
+  ageVerified: boolean("age_verified").notNull().default(false),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-// Fanworks table
+// Fanworks table (artwork and fanfiction only)
 export const fanworks = pgTable("fanworks", {
   id: serial("id").primaryKey(),
-  title: varchar("title", { length: 255 }).notNull(),
+  title: varchar("title", { length: 200 }).notNull(),
   description: text("description"),
-  type: varchar("type", { length: 50 }).notNull(), // 'artwork', 'fanfiction', 'comic'
-  rating: varchar("rating", { length: 20 }).notNull(), // 'all-ages', 'teen', 'mature', 'explicit'
-  content: text("content"), // For fanfiction text content
-  imageUrl: varchar("image_url"), // For artwork/comic images
-  fileUrl: varchar("file_url"), // For downloadable files
-  wordCount: integer("word_count"), // For fanfiction
-  chapterCount: integer("chapter_count"), // For fanfiction
-  isComplete: boolean("is_complete").default(false),
+  type: varchar("type", { length: 20 }).notNull(), // fanart, fanfiction
+  contentUrl: varchar("content_url", { length: 500 }),
+  textContent: text("text_content"), // For fanfiction
+  rating: varchar("rating", { length: 10 }).notNull(),
   authorId: integer("author_id").notNull().references(() => users.id),
-  // Moderation fields
-  isHidden: boolean("is_hidden").default(false).notNull(),
+  isHidden: boolean("is_hidden").notNull().default(false),
   moderationReason: text("moderation_reason"),
   moderatedAt: timestamp("moderated_at"),
-  moderatedBy: integer("moderated_by").references(() => users.id),
-  contentType: varchar("content_type", { length: 50 }).default("fanart").notNull(), // 'fanart', 'no_real_photos'
-  isReported: boolean("is_reported").default(false).notNull(),
-  reportCount: integer("report_count").default(0).notNull(),
-  // AO3 import fields
-  ao3WorkId: varchar("ao3_work_id", { length: 50 }),
-  ao3Url: varchar("ao3_url", { length: 500 }),
-  originalAuthor: varchar("original_author", { length: 255 }),
-  importedAt: timestamp("imported_at"),
+  moderatedBy: integer("moderated_by"),
+  contentType: varchar("content_type", { length: 50 }).notNull().default("fanart"),
+  isReported: boolean("is_reported").notNull().default(false),
+  reportCount: integer("report_count").notNull().default(0),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -78,21 +67,22 @@ export const fanworks = pgTable("fanworks", {
 // Tags table
 export const tags = pgTable("tags", {
   id: serial("id").primaryKey(),
-  name: varchar("name", { length: 100 }).notNull().unique(),
+  name: varchar("name", { length: 50 }).notNull().unique(),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
-// Junction table for fanwork tags
+// Junction table for fanworks and tags
 export const fanworkTags = pgTable("fanwork_tags", {
   id: serial("id").primaryKey(),
   fanworkId: integer("fanwork_id").notNull().references(() => fanworks.id, { onDelete: "cascade" }),
   tagId: integer("tag_id").notNull().references(() => tags.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at").defaultNow(),
 });
 
 // Likes table
 export const likes = pgTable("likes", {
   id: serial("id").primaryKey(),
-  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  userId: integer("user_id").notNull().references(() => users.id),
   fanworkId: integer("fanwork_id").notNull().references(() => fanworks.id, { onDelete: "cascade" }),
   createdAt: timestamp("created_at").defaultNow(),
 });
@@ -101,33 +91,32 @@ export const likes = pgTable("likes", {
 export const comments = pgTable("comments", {
   id: serial("id").primaryKey(),
   content: text("content").notNull(),
-  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  userId: integer("user_id").notNull().references(() => users.id),
   fanworkId: integer("fanwork_id").notNull().references(() => fanworks.id, { onDelete: "cascade" }),
   createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 // Bookmarks table
 export const bookmarks = pgTable("bookmarks", {
   id: serial("id").primaryKey(),
-  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  userId: integer("user_id").notNull().references(() => users.id),
   fanworkId: integer("fanwork_id").notNull().references(() => fanworks.id, { onDelete: "cascade" }),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
-// Reports table for content moderation
+// Reports table for moderation
 export const reports = pgTable("reports", {
   id: serial("id").primaryKey(),
   reporterId: integer("reporter_id").notNull().references(() => users.id),
   fanworkId: integer("fanwork_id").references(() => fanworks.id, { onDelete: "cascade" }),
   commentId: integer("comment_id").references(() => comments.id, { onDelete: "cascade" }),
-  userId: integer("user_id").references(() => users.id), // For reporting users
-  reason: varchar("reason", { length: 100 }).notNull(), // 'inappropriate', 'real_photo', 'spam', 'harassment', 'other'
+  userId: integer("user_id").references(() => users.id),
+  reason: varchar("reason", { length: 100 }).notNull(),
   description: text("description"),
-  status: varchar("status", { length: 20 }).default("pending").notNull(), // 'pending', 'reviewed', 'resolved', 'dismissed'
+  status: varchar("status", { length: 20 }).notNull().default("pending"),
   reviewedBy: integer("reviewed_by").references(() => users.id),
   reviewedAt: timestamp("reviewed_at"),
-  moderationAction: varchar("moderation_action", { length: 50 }), // 'hide_content', 'ban_user', 'delete_content', 'no_action'
+  moderationAction: varchar("moderation_action", { length: 50 }),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -137,6 +126,8 @@ export const usersRelations = relations(users, ({ many }) => ({
   likes: many(likes),
   comments: many(comments),
   bookmarks: many(bookmarks),
+  reports: many(reports, { relationName: "reporter" }),
+  reviewedReports: many(reports, { relationName: "reviewer" }),
 }));
 
 export const fanworksRelations = relations(fanworks, ({ one, many }) => ({
@@ -144,14 +135,15 @@ export const fanworksRelations = relations(fanworks, ({ one, many }) => ({
     fields: [fanworks.authorId],
     references: [users.id],
   }),
-  fanworkTags: many(fanworkTags),
+  tags: many(fanworkTags),
   likes: many(likes),
   comments: many(comments),
   bookmarks: many(bookmarks),
+  reports: many(reports),
 }));
 
 export const tagsRelations = relations(tags, ({ many }) => ({
-  fanworkTags: many(fanworkTags),
+  fanworks: many(fanworkTags),
 }));
 
 export const fanworkTagsRelations = relations(fanworkTags, ({ one }) => ({
@@ -202,6 +194,7 @@ export const reportsRelations = relations(reports, ({ one }) => ({
   reporter: one(users, {
     fields: [reports.reporterId],
     references: [users.id],
+    relationName: "reporter",
   }),
   fanwork: one(fanworks, {
     fields: [reports.fanworkId],
@@ -211,21 +204,28 @@ export const reportsRelations = relations(reports, ({ one }) => ({
     fields: [reports.commentId],
     references: [comments.id],
   }),
-  reportedUser: one(users, {
+  user: one(users, {
     fields: [reports.userId],
     references: [users.id],
   }),
   reviewer: one(users, {
     fields: [reports.reviewedBy],
     references: [users.id],
+    relationName: "reviewer",
   }),
 }));
 
-// Insert schemas
+// Insert schemas for validation
 export const insertFanworkSchema = createInsertSchema(fanworks).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
+  isHidden: true,
+  moderationReason: true,
+  moderatedAt: true,
+  moderatedBy: true,
+  isReported: true,
+  reportCount: true,
 });
 
 export const insertTagSchema = createInsertSchema(tags).omit({
@@ -236,7 +236,6 @@ export const insertTagSchema = createInsertSchema(tags).omit({
 export const insertCommentSchema = createInsertSchema(comments).omit({
   id: true,
   createdAt: true,
-  updatedAt: true,
 });
 
 export const insertReportSchema = createInsertSchema(reports).omit({
@@ -248,7 +247,7 @@ export const insertReportSchema = createInsertSchema(reports).omit({
   moderationAction: true,
 });
 
-// Types
+// Type exports
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
 export type InsertFanwork = z.infer<typeof insertFanworkSchema>;

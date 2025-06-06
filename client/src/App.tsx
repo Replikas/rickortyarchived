@@ -12,9 +12,11 @@ import Home from "@/pages/home";
 import Browse from "@/pages/browse";
 import Upload from "@/pages/upload";
 import Profile from "@/pages/profile";
+import AgeVerification from "@/pages/age-verification";
+import AdminPanel from "@/pages/admin";
 
 function Router() {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { user, isAuthenticated, isLoading } = useAuth();
 
   if (isLoading) {
     return (
@@ -22,6 +24,11 @@ function Router() {
         <div className="text-neon-green text-xl">Loading...</div>
       </div>
     );
+  }
+
+  // Check if authenticated user needs age verification
+  if (isAuthenticated && user && !user.ageVerified) {
+    return <AgeVerification />;
   }
 
   return (
@@ -38,6 +45,7 @@ function Router() {
           <Route path="/browse" component={Browse} />
           <Route path="/upload" component={Upload} />
           <Route path="/profile" component={Profile} />
+          <Route path="/admin" component={AdminPanel} />
         </>
       )}
       <Route component={NotFound} />

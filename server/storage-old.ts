@@ -50,10 +50,10 @@ export interface IStorage {
   getFanworkTags(fanworkId: number): Promise<Tag[]>;
   
   // Interaction operations
-  toggleLike(userId: number, fanworkId: number): Promise<boolean>;
-  toggleBookmark(userId: number, fanworkId: number): Promise<boolean>;
-  isLiked(userId: number, fanworkId: number): Promise<boolean>;
-  isBookmarked(userId: number, fanworkId: number): Promise<boolean>;
+  toggleLike(userId: string, fanworkId: number): Promise<boolean>;
+  toggleBookmark(userId: string, fanworkId: number): Promise<boolean>;
+  isLiked(userId: string, fanworkId: number): Promise<boolean>;
+  isBookmarked(userId: string, fanworkId: number): Promise<boolean>;
   getFanworkCounts(fanworkId: number): Promise<{
     likes: number;
     comments: number;
@@ -117,33 +117,41 @@ export class DatabaseStorage implements IStorage {
     if (filters?.type?.length) {
       conditions.push(inArray(fanworks.type, filters.type));
     }
+
     if (filters?.rating?.length) {
       conditions.push(inArray(fanworks.rating, filters.rating));
     }
+
     if (filters?.search) {
       conditions.push(
-        sql`${fanworks.title} ILIKE ${`%${filters.search}%`} OR ${fanworks.description} ILIKE ${`%${filters.search}%`}`
+        sql`(${fanworks.title} ILIKE ${'%' + filters.search + '%'} OR ${fanworks.description} ILIKE ${'%' + filters.search + '%'})`
       );
     }
+
     if (filters?.authorId) {
-      conditions.push(eq(fanworks.authorId, parseInt(filters.authorId)));
+      conditions.push(eq(fanworks.authorId, filters.authorId));
     }
 
     if (conditions.length > 0) {
       query = query.where(and(...conditions));
     }
 
-    const result = await query
-      .orderBy(desc(fanworks.createdAt))
-      .limit(filters?.limit || 20)
-      .offset(filters?.offset || 0);
+    query = query.orderBy(desc(fanworks.createdAt));
 
-    return result;
+    if (filters?.limit) {
+      query = query.limit(filters.limit);
+    }
+
+    if (filters?.offset) {
+      query = query.offset(filters.offset);
+    }
+
+    return await query;
   }
 
   async getFanwork(id: number): Promise<Fanwork | undefined> {
     const [fanwork] = await db.select().from(fanworks).where(eq(fanworks.id, id));
-    return fanwork || undefined;
+    return fanwork;
   }
 
   async createFanwork(fanwork: InsertFanwork): Promise<Fanwork> {
@@ -164,48 +172,50 @@ export class DatabaseStorage implements IStorage {
     await db.delete(fanworks).where(eq(fanworks.id, id));
   }
 
+  // Tag operations
   async getTags(): Promise<Tag[]> {
     return await db.select().from(tags).orderBy(tags.name);
   }
 
   async getOrCreateTag(name: string): Promise<Tag> {
-    const [existing] = await db.select().from(tags).where(eq(tags.name, name));
+    const [existing] = await db.select().from(tags).where(eq(tags.name, name.toLowerCase()));
     
     if (existing) {
       return existing;
     }
 
-    const [created] = await db.insert(tags).values({ name }).returning();
+    const [created] = await db.insert(tags).values({ name: name.toLowerCase() }).returning();
     return created;
   }
 
   async addTagsToFanwork(fanworkId: number, tagNames: string[]): Promise<void> {
-    for (const tagName of tagNames) {
-      const tag = await this.getOrCreateTag(tagName);
-      
-      // Check if relationship already exists
-      const [existing] = await db
-        .select()
-        .from(fanworkTags)
-        .where(and(eq(fanworkTags.fanworkId, fanworkId), eq(fanworkTags.tagId, tag.id)));
+    // First, get or create all tags
+    const tagPromises = tagNames.map(name => this.getOrCreateTag(name));
+    const tagsToAdd = await Promise.all(tagPromises);
 
-      if (!existing) {
-        await db.insert(fanworkTags).values({
-          fanworkId,
-          tagId: tag.id,
-        });
-      }
+    // Then, add them to the fanwork
+    const fanworkTagsToInsert = tagsToAdd.map(tag => ({
+      fanworkId,
+      tagId: tag.id,
+    }));
+
+    if (fanworkTagsToInsert.length > 0) {
+      await db.insert(fanworkTags).values(fanworkTagsToInsert);
     }
   }
 
   async getFanworkTags(fanworkId: number): Promise<Tag[]> {
     const result = await db
-      .select({ tag: tags })
+      .select({
+        id: tags.id,
+        name: tags.name,
+        createdAt: tags.createdAt,
+      })
       .from(fanworkTags)
       .innerJoin(tags, eq(fanworkTags.tagId, tags.id))
       .where(eq(fanworkTags.fanworkId, fanworkId));
 
-    return result.map(r => r.tag);
+    return result;
   }
 
   // Interaction operations
@@ -226,7 +236,7 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async toggleBookmark(userId: number, fanworkId: number): Promise<boolean> {
+  async toggleBookmark(userId: string, fanworkId: number): Promise<boolean> {
     const [existing] = await db
       .select()
       .from(bookmarks)
@@ -243,7 +253,7 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async isLiked(userId: number, fanworkId: number): Promise<boolean> {
+  async isLiked(userId: string, fanworkId: number): Promise<boolean> {
     const [existing] = await db
       .select()
       .from(likes)
@@ -251,7 +261,7 @@ export class DatabaseStorage implements IStorage {
     return !!existing;
   }
 
-  async isBookmarked(userId: number, fanworkId: number): Promise<boolean> {
+  async isBookmarked(userId: string, fanworkId: number): Promise<boolean> {
     const [existing] = await db
       .select()
       .from(bookmarks)
@@ -280,12 +290,13 @@ export class DatabaseStorage implements IStorage {
       .where(eq(bookmarks.fanworkId, fanworkId));
 
     return {
-      likes: likesCount?.count || 0,
-      comments: commentsCount?.count || 0,
-      bookmarks: bookmarksCount?.count || 0,
+      likes: likesCount.count,
+      comments: commentsCount.count,
+      bookmarks: bookmarksCount.count,
     };
   }
 
+  // Comment operations
   async getComments(fanworkId: number): Promise<Comment[]> {
     return await db
       .select()
@@ -299,7 +310,7 @@ export class DatabaseStorage implements IStorage {
     return created;
   }
 
-  async deleteComment(id: number, userId: number): Promise<void> {
+  async deleteComment(id: number, userId: string): Promise<void> {
     await db
       .delete(comments)
       .where(and(eq(comments.id, id), eq(comments.userId, userId)));

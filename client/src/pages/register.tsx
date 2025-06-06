@@ -7,6 +7,7 @@ import { useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
@@ -17,6 +18,9 @@ const registerSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
   password: z.string().min(6, "Password must be at least 6 characters"),
   confirmPassword: z.string(),
+  ageConfirmation: z.boolean().refine((val) => val === true, {
+    message: "You must confirm you are 18 or older to register",
+  }),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Passwords don't match",
   path: ["confirmPassword"],
@@ -37,12 +41,13 @@ export default function Register() {
       email: "",
       password: "",
       confirmPassword: "",
+      ageConfirmation: false,
     },
   });
 
   const registerMutation = useMutation({
     mutationFn: async (data: RegisterFormData) => {
-      const { confirmPassword, ...registerData } = data;
+      const { confirmPassword, ageConfirmation, ...registerData } = data;
       const response = await apiRequest("/api/auth/register", {
         method: "POST",
         body: JSON.stringify(registerData),
@@ -170,6 +175,32 @@ export default function Register() {
                 </div>
                 {form.formState.errors.confirmPassword && (
                   <p className="text-sm text-red-400">{form.formState.errors.confirmPassword.message}</p>
+                )}
+              </div>
+
+              <div className="space-y-3">
+                <div className="flex items-start space-x-3">
+                  <Checkbox
+                    id="ageConfirmation"
+                    checked={form.watch("ageConfirmation")}
+                    onCheckedChange={(checked) => form.setValue("ageConfirmation", checked === true)}
+                    className="mt-1 border-gray-600 data-[state=checked]:bg-green-500 data-[state=checked]:border-green-500"
+                  />
+                  <div className="space-y-1">
+                    <Label 
+                      htmlFor="ageConfirmation" 
+                      className="text-sm text-gray-200 leading-tight cursor-pointer"
+                    >
+                      I confirm that I am 18 years of age or older
+                    </Label>
+                    <p className="text-xs text-gray-400 leading-tight">
+                      By checking this box, you confirm you are legally an adult. 
+                      This platform is not responsible for users who misrepresent their age.
+                    </p>
+                  </div>
+                </div>
+                {form.formState.errors.ageConfirmation && (
+                  <p className="text-sm text-red-400">{form.formState.errors.ageConfirmation.message}</p>
                 )}
               </div>
 

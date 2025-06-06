@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Atom, FileImage, BookOpen, Users } from "lucide-react";
+import { Link } from "wouter";
 
 export default function Landing() {
   return (
@@ -15,12 +16,11 @@ export default function Landing() {
               </div>
               <span className="text-xl font-bold text-neon-green">Rickorty Archive</span>
             </div>
-            <Button 
-              onClick={() => window.location.href = '/api/login'}
-              className="bg-neon-green text-dark-bg hover:bg-neon-green/90 glow-neon"
-            >
-              Enter Archive
-            </Button>
+            <Link href="/login">
+              <Button className="bg-neon-green text-dark-bg hover:bg-neon-green/90 glow-neon">
+                Enter Archive
+              </Button>
+            </Link>
           </div>
         </div>
       </header>
@@ -38,20 +38,23 @@ export default function Landing() {
             fan-made content without judgment. Think AO3 meets underground art vault, Rick-style.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button 
-              onClick={() => window.location.href = '/api/login'}
-              size="lg"
-              className="bg-neon-green text-dark-bg hover:bg-neon-green/90 glow-neon"
-            >
-              Join the Archive
-            </Button>
-            <Button 
-              variant="outline" 
-              size="lg"
-              className="border-portal-blue text-portal-blue hover:bg-portal-blue hover:text-white"
-            >
-              Learn More
-            </Button>
+            <Link href="/register">
+              <Button 
+                size="lg"
+                className="bg-neon-green text-dark-bg hover:bg-neon-green/90 glow-neon"
+              >
+                Join the Archive
+              </Button>
+            </Link>
+            <Link href="/login">
+              <Button 
+                variant="outline" 
+                size="lg"
+                className="border-portal-blue text-portal-blue hover:bg-portal-blue hover:text-white"
+              >
+                Already have account?
+              </Button>
+            </Link>
           </div>
         </div>
 

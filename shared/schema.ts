@@ -24,13 +24,16 @@ export const sessions = pgTable(
   (table) => [index("IDX_session_expire").on(table.expire)],
 );
 
-// User storage table for Replit Auth
+// User storage table for email/password authentication
 export const users = pgTable("users", {
-  id: varchar("id").primaryKey().notNull(),
-  email: varchar("email").unique(),
-  firstName: varchar("first_name"),
-  lastName: varchar("last_name"),
-  profileImageUrl: varchar("profile_image_url"),
+  id: serial("id").primaryKey(),
+  email: varchar("email", { length: 255 }).notNull().unique(),
+  username: varchar("username", { length: 50 }).notNull().unique(),
+  passwordHash: varchar("password_hash", { length: 255 }).notNull(),
+  firstName: varchar("first_name", { length: 100 }),
+  lastName: varchar("last_name", { length: 100 }),
+  profileImageUrl: varchar("profile_image_url", { length: 500 }),
+  isActive: boolean("is_active").default(true),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -48,7 +51,12 @@ export const fanworks = pgTable("fanworks", {
   wordCount: integer("word_count"), // For fanfiction
   chapterCount: integer("chapter_count"), // For fanfiction
   isComplete: boolean("is_complete").default(false),
-  authorId: varchar("author_id").notNull().references(() => users.id),
+  authorId: integer("author_id").notNull().references(() => users.id),
+  // AO3 import fields
+  ao3WorkId: varchar("ao3_work_id", { length: 50 }),
+  ao3Url: varchar("ao3_url", { length: 500 }),
+  originalAuthor: varchar("original_author", { length: 255 }),
+  importedAt: timestamp("imported_at"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -70,7 +78,7 @@ export const fanworkTags = pgTable("fanwork_tags", {
 // Likes table
 export const likes = pgTable("likes", {
   id: serial("id").primaryKey(),
-  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   fanworkId: integer("fanwork_id").notNull().references(() => fanworks.id, { onDelete: "cascade" }),
   createdAt: timestamp("created_at").defaultNow(),
 });

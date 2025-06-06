@@ -8,20 +8,34 @@ async function throwIfResNotOk(res: Response) {
 }
 
 export async function apiRequest(
-  method: string,
   url: string,
-  data?: unknown | undefined,
-): Promise<Response> {
-  const isFormData = data instanceof FormData;
+  options: RequestInit = {}
+): Promise<any> {
+  const isFormData = options.body instanceof FormData;
   
+  const defaultHeaders: HeadersInit = isFormData ? {} : { "Content-Type": "application/json" };
+  
+  // Add JWT token if available
+  const token = localStorage.getItem("token");
+  if (token) {
+    defaultHeaders["Authorization"] = `Bearer ${token}`;
+  }
+
   const res = await fetch(url, {
-    method,
-    headers: isFormData ? {} : data ? { "Content-Type": "application/json" } : {},
-    body: isFormData ? data : data ? JSON.stringify(data) : undefined,
-    credentials: "include",
+    ...options,
+    headers: {
+      ...defaultHeaders,
+      ...options.headers,
+    },
   });
 
   await throwIfResNotOk(res);
+  
+  // Handle JSON responses
+  const contentType = res.headers.get("content-type");
+  if (contentType && contentType.includes("application/json")) {
+    return res.json();
+  }
   return res;
 }
 
@@ -31,8 +45,16 @@ export const getQueryFn: <T>(options: {
 }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
+    const headers: HeadersInit = {};
+    
+    // Add JWT token if available
+    const token = localStorage.getItem("token");
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`;
+    }
+
     const res = await fetch(queryKey[0] as string, {
-      credentials: "include",
+      headers,
     });
 
     if (unauthorizedBehavior === "returnNull" && res.status === 401) {

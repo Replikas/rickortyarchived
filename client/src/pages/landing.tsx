@@ -120,7 +120,7 @@ export default function Landing() {
       <footer className="border-t border-border mt-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="text-center text-muted-foreground">
-            <p>© 2024 Rickorty Archive. All content belongs to respective creators.</p>
+            <p>© 2025 Rickorty Archive. All content belongs to respective creators.</p>
             <p className="mt-2 text-sm">
               No moderation AI. No auto-deletion. Only hard limits are actual legality.
             </p>

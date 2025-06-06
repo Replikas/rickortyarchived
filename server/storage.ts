@@ -95,24 +95,7 @@ export class DatabaseStorage implements IStorage {
     limit?: number;
     offset?: number;
   }): Promise<Fanwork[]> {
-    let query = db
-      .select({
-        id: fanworks.id,
-        title: fanworks.title,
-        description: fanworks.description,
-        type: fanworks.type,
-        rating: fanworks.rating,
-        content: fanworks.content,
-        imageUrl: fanworks.imageUrl,
-        fileUrl: fanworks.fileUrl,
-        wordCount: fanworks.wordCount,
-        chapterCount: fanworks.chapterCount,
-        isComplete: fanworks.isComplete,
-        authorId: fanworks.authorId,
-        createdAt: fanworks.createdAt,
-        updatedAt: fanworks.updatedAt,
-      })
-      .from(fanworks);
+    let query = db.select().from(fanworks);
 
     const conditions = [];
 
